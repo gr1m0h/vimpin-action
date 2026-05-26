@@ -1,0 +1,120 @@
+name: vimpin
+description: |
+  Pin Vim/Neovim plugin specs to explicit commit hashes (lazy.nvim).
+  Wraps the gr1m0h/vimpin CLI with a one-line GitHub Actions interface.
+author: gr1m0h
+
+branding:
+  icon: lock
+  color: green
+
+inputs:
+  mode:
+    description: |
+      Operating mode. One of:
+        verify         - run `vimpin verify` (read-only structural check)
+        verify-strict  - run `vimpin verify --strict` (also re-resolves refs)
+        run-check      - run `vimpin run --check` (fail if any file would change)
+        run            - run `vimpin run` and write changes back to the tree
+        run-refresh    - run `vimpin run --refresh` (re-resolve already-pinned)
+    required: false
+    default: verify-strict
+  paths:
+    description: |
+      Paths to scan (space-separated). Defaults to vimpin's discovery layout
+      (lua/plugins/, lua/config/lazy.lua, init.lua, plugin/).
+    required: false
+    default: ""
+  version:
+    description: |
+      Pinned vimpin CLI version. Set to `latest` for the most recent release,
+      or pin to a specific tag (recommended for CI reproducibility).
+    required: false
+    default: latest
+  fail-on-diff:
+    description: |
+      For mode=run: fail the job if `vimpin run` produced any changes. This is
+      useful as a belt-and-braces check alongside mode=run-check on PRs.
+    required: false
+    default: "false"
+  go-version:
+    description: Go toolchain version used to install vimpin.
+    required: false
+    default: "1.24"
+
+outputs:
+  changed:
+    description: |
+      "true" if the chosen mode wrote (or would write) any file changes,
+      "false" otherwise. Useful with mode=run to gate a follow-up step that
+      opens a PR with the resulting diff.
+    value: ${{ steps.vimpin.outputs.changed }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+        cache: false
+
+    - name: Install vimpin
+      shell: bash
+      run: |
+        set -eu
+        if [ "${{ inputs.version }}" = "latest" ]; then
+          go install github.com/gr1m0h/vimpin/cmd/vimpin@latest
+        else
+          go install "github.com/gr1m0h/vimpin/cmd/vimpin@${{ inputs.version }}"
+        fi
+        # Ensure $GOBIN/$GOPATH/bin is on PATH for subsequent steps.
+        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+    - name: Run vimpin
+      id: vimpin
+      shell: bash
+      env:
+        VIMPIN_MODE: ${{ inputs.mode }}
+        VIMPIN_PATHS: ${{ inputs.paths }}
+        VIMPIN_FAIL_ON_DIFF: ${{ inputs.fail-on-diff }}
+      run: |
+        set -eu
+
+        # Snapshot the worktree so we can detect changes after a writable mode.
+        before=$(git status --porcelain)
+
+        case "$VIMPIN_MODE" in
+          verify)
+            vimpin verify $VIMPIN_PATHS
+            ;;
+          verify-strict)
+            vimpin verify --strict $VIMPIN_PATHS
+            ;;
+          run-check)
+            vimpin run --check $VIMPIN_PATHS
+            ;;
+          run)
+            vimpin run $VIMPIN_PATHS
+            ;;
+          run-refresh)
+            vimpin run --refresh $VIMPIN_PATHS
+            ;;
+          *)
+            echo "unknown mode: $VIMPIN_MODE" >&2
+            echo "expected one of: verify, verify-strict, run-check, run, run-refresh" >&2
+            exit 2
+            ;;
+        esac
+
+        after=$(git status --porcelain)
+        if [ "$before" != "$after" ]; then
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          if [ "$VIMPIN_FAIL_ON_DIFF" = "true" ]; then
+            echo "::error::vimpin produced changes; fail-on-diff is enabled"
+            git --no-pager diff
+            exit 1
+          fi
+        else
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        fi

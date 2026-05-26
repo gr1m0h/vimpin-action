@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    name: action self-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare fixture
+        run: |
+          mkdir -p fixture/lua/plugins
+          cat > fixture/lua/plugins/spec.lua <<'LUA'
+          return {
+            { "folke/which-key.nvim", branch = "main" },
+          }
+          LUA
+
+      - name: Use this action (verify-strict on already-pinned file)
+        # First pin the fixture, then assert verify --strict passes.
+        uses: ./
+        with:
+          mode: run
+          paths: fixture/lua/plugins
+      - uses: ./
+        with:
+          mode: verify-strict
+          paths: fixture/lua/plugins
+
+  lint-action-yml:
+    name: lint action.yml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: actionlint
+        uses: rhysd/actionlint@main
+        with:
+          fail_on_error: true
