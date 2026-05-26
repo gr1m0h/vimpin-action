@@ -111,6 +111,19 @@ Pin to `@<sha>` and use Dependabot to track action updates; the action will, in 
 
 Bug reports about pinning behaviour go to `gr1m0h/vimpin`; bug reports about the Action wrapper go here.
 
+## Roadmap
+
+Tracked as [GitHub Issues](https://github.com/gr1m0h/vimpin-action/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement):
+
+- **Switch to GitHub Releases binary download** ([#2](https://github.com/gr1m0h/vimpin-action/issues/2)) — drop the per-run Go compile
+- **Cache compiled vimpin binary between runs** ([#3](https://github.com/gr1m0h/vimpin-action/issues/3)) — interim before #2 lands
+- **OS matrix in self-test** ([#4](https://github.com/gr1m0h/vimpin-action/issues/4)) — windows / macos
+- **Validate `mode` against an allowlist** ([#5](https://github.com/gr1m0h/vimpin-action/issues/5)) — explicit guard before dispatch
+- **Reusable workflow variant** ([#6](https://github.com/gr1m0h/vimpin-action/issues/6)) — alongside the composite action
+- **Additional structured outputs** ([#7](https://github.com/gr1m0h/vimpin-action/issues/7)) — `changed-files`, `resolved-version`, `summary`
+- **End-to-end self-test against a non-trivial fixture** ([#8](https://github.com/gr1m0h/vimpin-action/issues/8))
+- **Build provenance attestation for release tags** ([#9](https://github.com/gr1m0h/vimpin-action/issues/9))
+
 ## License
 
 MIT
