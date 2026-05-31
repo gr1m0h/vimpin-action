@@ -12,13 +12,14 @@ inputs:
   mode:
     description: |
       Operating mode. One of:
-        verify         - run `vimpin verify` (read-only structural check)
-        verify-strict  - run `vimpin verify --strict` (also re-resolves refs)
-        run-check      - run `vimpin run --check` (fail if any file would change)
-        run            - run `vimpin run` and write changes back to the tree
-        run-refresh    - run `vimpin run --refresh` (re-resolve already-pinned)
+        run          - run `vimpin run` (initial pin: field-form -> canonical)
+        check        - run `vimpin run --check` (read-only; fail if any file would change)
+        verify       - run `vimpin run --verify` (correct annotation to match SHA)
+        verify-check - run `vimpin run --verify --check` (read-only verify)
+        update       - run `vimpin run --update` (bump to latest tag / branch HEAD)
+        no-api       - run `vimpin run --no-api` (offline structural check)
     required: false
-    default: verify-strict
+    default: verify-check
   paths:
     description: |
       Paths to scan (space-separated). Defaults to vimpin's discovery layout
@@ -27,14 +28,15 @@ inputs:
     default: ""
   version:
     description: |
-      Pinned vimpin CLI version. Set to `latest` for the most recent release,
-      or pin to a specific tag (recommended for CI reproducibility).
+      vimpin CLI version. Accepts a semver tag (e.g. `v0.1.0`), `latest`, or
+      `main` for the HEAD of the main branch. Pin to a tag for reproducible
+      CI. Defaults to `main` while vimpin is in alpha (no tags released yet).
     required: false
-    default: latest
+    default: main
   fail-on-diff:
     description: |
-      For mode=run: fail the job if `vimpin run` produced any changes. This is
-      useful as a belt-and-braces check alongside mode=run-check on PRs.
+      For mode=run or mode=update: fail the job if vimpin produced any
+      changes. Useful as a belt-and-braces check alongside mode=check on PRs.
     required: false
     default: "false"
   go-version:
@@ -46,8 +48,8 @@ outputs:
   changed:
     description: |
       "true" if the chosen mode wrote (or would write) any file changes,
-      "false" otherwise. Useful with mode=run to gate a follow-up step that
-      opens a PR with the resulting diff.
+      "false" otherwise. Useful with mode=run / mode=update to gate a
+      follow-up step that opens a PR with the resulting diff.
     value: ${{ steps.vimpin.outputs.changed }}
 
 runs:
@@ -61,14 +63,28 @@ runs:
 
     - name: Install vimpin
       shell: bash
+      env:
+        # Passed via env (not template interpolation) to neutralise the
+        # GitHub Actions template-injection class.
+        VIMPIN_VERSION: ${{ inputs.version }}
       run: |
         set -eu
-        if [ "${{ inputs.version }}" = "latest" ]; then
-          go install github.com/gr1m0h/vimpin/cmd/vimpin@latest
-        else
-          go install "github.com/gr1m0h/vimpin/cmd/vimpin@${{ inputs.version }}"
-        fi
-        # Ensure $GOBIN/$GOPATH/bin is on PATH for subsequent steps.
+        case "$VIMPIN_VERSION" in
+          latest|main)
+            go install "github.com/gr1m0h/vimpin/cmd/vimpin@${VIMPIN_VERSION}"
+            ;;
+          v[0-9]*)
+            go install "github.com/gr1m0h/vimpin/cmd/vimpin@${VIMPIN_VERSION}"
+            ;;
+          [0-9a-f][0-9a-f][0-9a-f][0-9a-f]*)
+            # commit SHA (at least 4 hex characters)
+            go install "github.com/gr1m0h/vimpin/cmd/vimpin@${VIMPIN_VERSION}"
+            ;;
+          *)
+            echo "::error::invalid version: $VIMPIN_VERSION (expected: latest, main, semver tag, or commit SHA)"
+            exit 2
+            ;;
+        esac
         echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
     - name: Run vimpin
@@ -84,25 +100,33 @@ runs:
         # Snapshot the worktree so we can detect changes after a writable mode.
         before=$(git status --porcelain)
 
+        # Expand paths input into an array so spec values are not subject to
+        # shell word-splitting beyond whitespace (defence-in-depth against
+        # crafted callers).
+        read -ra paths_arr <<< "$VIMPIN_PATHS"
+
         case "$VIMPIN_MODE" in
-          verify)
-            vimpin verify $VIMPIN_PATHS
-            ;;
-          verify-strict)
-            vimpin verify --strict $VIMPIN_PATHS
-            ;;
-          run-check)
-            vimpin run --check $VIMPIN_PATHS
-            ;;
           run)
-            vimpin run $VIMPIN_PATHS
+            vimpin run "${paths_arr[@]}"
             ;;
-          run-refresh)
-            vimpin run --refresh $VIMPIN_PATHS
+          check)
+            vimpin run --check "${paths_arr[@]}"
+            ;;
+          verify)
+            vimpin run --verify "${paths_arr[@]}"
+            ;;
+          verify-check)
+            vimpin run --verify --check "${paths_arr[@]}"
+            ;;
+          update)
+            vimpin run --update "${paths_arr[@]}"
+            ;;
+          no-api)
+            vimpin run --no-api "${paths_arr[@]}"
             ;;
           *)
-            echo "unknown mode: $VIMPIN_MODE" >&2
-            echo "expected one of: verify, verify-strict, run-check, run, run-refresh" >&2
+            echo "::error::unknown mode: $VIMPIN_MODE" >&2
+            echo "expected one of: run, check, verify, verify-check, update, no-api" >&2
             exit 2
             ;;
         esac

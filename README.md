@@ -2,7 +2,7 @@
 
 A GitHub Action wrapper around the [`gr1m0h/vimpin`](https://github.com/gr1m0h/vimpin) CLI.
 
-`vimpin` rewrites `lazy.nvim` Lua plugin specs to pin every plugin to an explicit commit hash; this action wraps the CLI so a workflow can verify pins, fail PRs that introduce drift, or open refresh PRs without the four-step install-and-run boilerplate.
+`vimpin` rewrites `lazy.nvim` Lua plugin specs so every plugin is pinned to an explicit commit hash. This action wraps the CLI so a workflow can verify pins, fail PRs that introduce drift, or open update PRs without the four-step install-and-run boilerplate.
 
 > **Status:** scaffold. The action is published from this repo so its inputs and tags can evolve independently of the CLI's release cadence.
 
@@ -18,22 +18,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gr1m0h/vimpin-action@v1
+      - uses: gr1m0h/vimpin-action@main
         with:
-          mode: verify-strict
+          mode: verify-check
 ```
 
 That replaces the four-step install-and-run pattern with a single dependency on this action.
 
 ## Inputs
 
-| Input          | Default          | Description |
-|----------------|------------------|-------------|
-| `mode`         | `verify-strict`  | One of `verify`, `verify-strict`, `run-check`, `run`, `run-refresh` |
+| Input          | Default        | Description |
+|----------------|----------------|-------------|
+| `mode`         | `verify-check` | One of `run`, `check`, `verify`, `verify-check`, `update`, `no-api` |
 | `paths`        | (vimpin default) | Space-separated paths to scan; empty means use vimpin's discovery layout |
-| `version`      | `latest`         | vimpin CLI version (pin to a tag for reproducible CI) |
-| `fail-on-diff` | `false`          | For `mode: run` — fail the job if any files would change |
-| `go-version`   | `1.24`           | Go toolchain version used to install the CLI |
+| `version`      | `main`         | vimpin CLI version. Accepts `latest`, `main`, a semver tag, or a commit SHA. Defaults to `main` while vimpin is alpha; switch to a tag for reproducible CI once one is released. |
+| `fail-on-diff` | `false`        | For `mode: run` / `mode: update` — fail the job if any files would change |
+| `go-version`   | `1.24`         | Go toolchain version used to install the CLI |
+
+### Mode reference
+
+| Mode           | Underlying CLI                | What it does |
+|----------------|-------------------------------|--------------|
+| `run`          | `vimpin run`                  | Initial pin (field-form → canonical). No-op on already-canonical specs. |
+| `check`        | `vimpin run --check`          | Read-only. Exits non-zero if anything would change. |
+| `verify`       | `vimpin run --verify`         | Reverse-resolves SHA, rewrites annotation if it drifted. SHA stays. |
+| `verify-check` | `vimpin run --verify --check` | Read-only verify. Reports drift, exits non-zero. |
+| `update`       | `vimpin run --update`         | Bump each spec to the latest semver tag (or branch HEAD). |
+| `no-api`       | `vimpin run --no-api`         | Offline structural check. No network. |
 
 ## Outputs
 
@@ -52,51 +63,54 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gr1m0h/vimpin-action@v1
+      - uses: gr1m0h/vimpin-action@main
         with:
-          mode: run-check    # any unpinned spec ⇒ red
-      - uses: gr1m0h/vimpin-action@v1
+          mode: check          # any unpinned spec ⇒ red
+      - uses: gr1m0h/vimpin-action@main
         with:
-          mode: verify-strict  # drift / tag rewriting ⇒ red
+          mode: no-api         # structural problem ⇒ red (offline, fast)
+      - uses: gr1m0h/vimpin-action@main
+        with:
+          mode: verify-check   # SHA ↔ annotation drift ⇒ red
 ```
 
-Make both job runs required status checks on `main`.
+Make these jobs required status checks on `main`.
 
-### Scheduled refresh PR
+### Scheduled update PR
 
 ```yaml
 on:
   schedule: [{ cron: '0 9 * * 1' }]
   workflow_dispatch:
 jobs:
-  refresh:
+  update:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: gr1m0h/vimpin-action@v1
+      - uses: gr1m0h/vimpin-action@main
         id: vimpin
         with:
-          mode: run-refresh
+          mode: update
       - if: steps.vimpin.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
-          title: "chore(deps): vimpin --refresh"
-          branch: vimpin-refresh
-          commit-message: "chore(deps): refresh pinned commits"
+          title: "chore(deps): vimpin --update"
+          branch: vimpin-update
+          commit-message: "chore(deps): bump pinned commits to latest tags"
 ```
 
 ## Versioning
 
 This action follows a separate semantic version line from the underlying CLI:
 
-- `@v1` — stable, additive-only changes
-- `@v2`, `@v3`, ... — breaking input/output changes
-- `@<sha>` — for maximum supply-chain safety (recommended for production CI)
+- `@main` — tracks the latest action surface; used while vimpin / vimpin-action are alpha (no release tags yet)
+- `@v1`, `@v2`, ... — once tagged, major versions follow additive / breaking semantics respectively
+- `@<sha>` — for maximum supply-chain safety (recommended for production CI once tags exist)
 
-Pin to `@<sha>` and use Dependabot to track action updates; the action will, in turn, pin a verified CLI release.
+Pin to `@<sha>` and use Renovate or Dependabot to track action updates; the action will, in turn, pin a verified CLI release.
 
 ## Relationship to vimpin
 
