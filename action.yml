@@ -71,7 +71,13 @@ runs:
         set -eu
         case "$VIMPIN_VERSION" in
           latest|main)
-            go install "github.com/gr1m0h/vimpin/cmd/vimpin@${VIMPIN_VERSION}"
+            # Rolling pointers (`latest`, `main`) get cached by the Go
+            # module proxy for tens of minutes after a push, so a fresh
+            # CLI commit on vimpin's main can take a long time to reach
+            # CI through proxy.golang.org. Bypass the proxy for these
+            # mutable refs; immutable refs (tags, SHAs) keep the proxy
+            # for fast, verifiable downloads.
+            GOPROXY=direct GOSUMDB=off go install "github.com/gr1m0h/vimpin/cmd/vimpin@${VIMPIN_VERSION}"
             ;;
           v[0-9]*)
             go install "github.com/gr1m0h/vimpin/cmd/vimpin@${VIMPIN_VERSION}"
