@@ -4,8 +4,6 @@ A GitHub Action wrapper around the [`gr1m0h/vimpin`](https://github.com/gr1m0h/v
 
 `vimpin` rewrites `lazy.nvim` Lua plugin specs so every plugin is pinned to an explicit commit hash. This action wraps the CLI so a workflow can verify pins, fail PRs that introduce drift, or open update PRs without the four-step install-and-run boilerplate.
 
-> **Status:** alpha. The action is published from this repo so its inputs and tags can evolve independently of the CLI's release cadence.
-
 ## Quick start
 
 ```yaml
@@ -31,7 +29,7 @@ That replaces the four-step install-and-run pattern with a single dependency on 
 |----------------|----------------|-------------|
 | `mode`         | `verify-check` | One of `run`, `check`, `verify`, `verify-check`, `update`, `no-api` |
 | `paths`        | (vimpin default) | Space-separated paths to scan; empty means use vimpin's discovery layout |
-| `version`      | `v0.0.1`       | vimpin CLI version. Accepts `latest`, `main`, a semver tag, or a commit SHA. Pin to a tag for reproducible CI. |
+| `version`      | `80abc5307ba6633cb2aa372a02aafb7ac6051f89` (v0.1.0) | vimpin CLI version. Accepts a commit SHA (recommended), a semver tag, `latest`, or `main`. Default pins to the v0.1.0 commit for the strongest supply-chain guarantees. |
 | `fail-on-diff` | `false`        | For `mode: run` / `mode: update` — fail the job if any files would change |
 | `go-version`   | `1.24`         | Go toolchain version used to install the CLI |
 
@@ -108,7 +106,7 @@ This action follows a separate semantic version line from the underlying CLI:
 
 - `@<sha>` (e.g. `@b0f298ab...ef902e04`) — for maximum supply-chain safety (recommended for production CI)
 - `@v1`, `@v2`, ... — once tagged, major versions follow additive / breaking semantics respectively
-- `@main` — tracks the latest action surface; useful while vimpin-action is alpha
+- `@main` — tracks the latest action surface
 
 Pin to `@<sha>` and use Renovate or Dependabot to track action updates; the action will, in turn, pin a verified CLI release.
 

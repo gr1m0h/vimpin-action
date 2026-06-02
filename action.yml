@@ -28,11 +28,12 @@ inputs:
     default: ""
   version:
     description: |
-      vimpin CLI version. Accepts a semver tag (e.g. `v0.0.1`), `latest`, or
-      `main` for the HEAD of the main branch. Pin to a tag for reproducible
-      CI.
+      vimpin CLI version. Accepts a commit SHA (recommended; e.g.
+      `80abc5307ba6633cb2aa372a02aafb7ac6051f89` for v0.1.0), a semver tag
+      (e.g. `v0.1.0`), `latest`, or `main` for the HEAD of the main branch.
+      Pin to a commit SHA for the strongest supply-chain guarantees.
     required: false
-    default: v0.0.1
+    default: 80abc5307ba6633cb2aa372a02aafb7ac6051f89
   fail-on-diff:
     description: |
       For mode=run or mode=update: fail the job if vimpin produced any
