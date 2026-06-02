@@ -28,11 +28,11 @@ inputs:
     default: ""
   version:
     description: |
-      vimpin CLI version. Accepts a semver tag (e.g. `v0.1.0`), `latest`, or
+      vimpin CLI version. Accepts a semver tag (e.g. `v0.0.1`), `latest`, or
       `main` for the HEAD of the main branch. Pin to a tag for reproducible
-      CI. Defaults to `main` while vimpin is in alpha (no tags released yet).
+      CI.
     required: false
-    default: main
+    default: v0.0.1
   fail-on-diff:
     description: |
       For mode=run or mode=update: fail the job if vimpin produced any

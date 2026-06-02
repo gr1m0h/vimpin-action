@@ -4,7 +4,7 @@ A GitHub Action wrapper around the [`gr1m0h/vimpin`](https://github.com/gr1m0h/v
 
 `vimpin` rewrites `lazy.nvim` Lua plugin specs so every plugin is pinned to an explicit commit hash. This action wraps the CLI so a workflow can verify pins, fail PRs that introduce drift, or open update PRs without the four-step install-and-run boilerplate.
 
-> **Status:** scaffold. The action is published from this repo so its inputs and tags can evolve independently of the CLI's release cadence.
+> **Status:** alpha. The action is published from this repo so its inputs and tags can evolve independently of the CLI's release cadence.
 
 ## Quick start
 
@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gr1m0h/vimpin-action@main
+      - uses: gr1m0h/vimpin-action@b0f298ab...ef902e04
         with:
           mode: verify-check
 ```
@@ -31,7 +31,7 @@ That replaces the four-step install-and-run pattern with a single dependency on 
 |----------------|----------------|-------------|
 | `mode`         | `verify-check` | One of `run`, `check`, `verify`, `verify-check`, `update`, `no-api` |
 | `paths`        | (vimpin default) | Space-separated paths to scan; empty means use vimpin's discovery layout |
-| `version`      | `main`         | vimpin CLI version. Accepts `latest`, `main`, a semver tag, or a commit SHA. Defaults to `main` while vimpin is alpha; switch to a tag for reproducible CI once one is released. |
+| `version`      | `v0.0.1`       | vimpin CLI version. Accepts `latest`, `main`, a semver tag, or a commit SHA. Pin to a tag for reproducible CI. |
 | `fail-on-diff` | `false`        | For `mode: run` / `mode: update` — fail the job if any files would change |
 | `go-version`   | `1.24`         | Go toolchain version used to install the CLI |
 
@@ -63,13 +63,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gr1m0h/vimpin-action@main
+      - uses: gr1m0h/vimpin-action@b0f298ab...ef902e04
         with:
           mode: check          # any unpinned spec ⇒ red
-      - uses: gr1m0h/vimpin-action@main
+      - uses: gr1m0h/vimpin-action@b0f298ab...ef902e04
         with:
           mode: no-api         # structural problem ⇒ red (offline, fast)
-      - uses: gr1m0h/vimpin-action@main
+      - uses: gr1m0h/vimpin-action@b0f298ab...ef902e04
         with:
           mode: verify-check   # SHA ↔ annotation drift ⇒ red
 ```
@@ -90,7 +90,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: gr1m0h/vimpin-action@main
+      - uses: gr1m0h/vimpin-action@b0f298ab...ef902e04
         id: vimpin
         with:
           mode: update
@@ -106,9 +106,9 @@ jobs:
 
 This action follows a separate semantic version line from the underlying CLI:
 
-- `@main` — tracks the latest action surface; used while vimpin / vimpin-action are alpha (no release tags yet)
+- `@<sha>` (e.g. `@b0f298ab...ef902e04`) — for maximum supply-chain safety (recommended for production CI)
 - `@v1`, `@v2`, ... — once tagged, major versions follow additive / breaking semantics respectively
-- `@<sha>` — for maximum supply-chain safety (recommended for production CI once tags exist)
+- `@main` — tracks the latest action surface; useful while vimpin-action is alpha
 
 Pin to `@<sha>` and use Renovate or Dependabot to track action updates; the action will, in turn, pin a verified CLI release.
 
