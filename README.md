@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gr1m0h/vimpin-action@b0f298ab...ef902e04
+      - uses: gr1m0h/vimpin-action@b0f298ab3ebed2db4b759e28aeabfe77ef902e04
         with:
           mode: verify-check
 ```
@@ -31,7 +31,7 @@ That replaces the four-step install-and-run pattern with a single dependency on 
 | `paths`        | (vimpin default) | Space-separated paths to scan; empty means use vimpin's discovery layout |
 | `version`      | `80abc5307ba6633cb2aa372a02aafb7ac6051f89` (v0.1.0) | vimpin CLI version. Accepts a commit SHA (recommended), a semver tag, `latest`, or `main`. Default pins to the v0.1.0 commit for the strongest supply-chain guarantees. |
 | `fail-on-diff` | `false`        | For `mode: run` / `mode: update` — fail the job if any files would change |
-| `go-version`   | `1.24`         | Go toolchain version used to install the CLI |
+| `go-version`   | `1.25`         | Go toolchain version used to install the CLI |
 
 ### Mode reference
 
@@ -61,13 +61,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gr1m0h/vimpin-action@b0f298ab...ef902e04
+      - uses: gr1m0h/vimpin-action@b0f298ab3ebed2db4b759e28aeabfe77ef902e04
         with:
           mode: check          # any unpinned spec ⇒ red
-      - uses: gr1m0h/vimpin-action@b0f298ab...ef902e04
+      - uses: gr1m0h/vimpin-action@b0f298ab3ebed2db4b759e28aeabfe77ef902e04
         with:
           mode: no-api         # structural problem ⇒ red (offline, fast)
-      - uses: gr1m0h/vimpin-action@b0f298ab...ef902e04
+      - uses: gr1m0h/vimpin-action@b0f298ab3ebed2db4b759e28aeabfe77ef902e04
         with:
           mode: verify-check   # SHA ↔ annotation drift ⇒ red
 ```
@@ -88,7 +88,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: gr1m0h/vimpin-action@b0f298ab...ef902e04
+      - uses: gr1m0h/vimpin-action@b0f298ab3ebed2db4b759e28aeabfe77ef902e04
         id: vimpin
         with:
           mode: update
@@ -104,7 +104,7 @@ jobs:
 
 This action follows a separate semantic version line from the underlying CLI:
 
-- `@<sha>` (e.g. `@b0f298ab...ef902e04`) — for maximum supply-chain safety (recommended for production CI)
+- `@<sha>` (e.g. `@b0f298ab3ebed2db4b759e28aeabfe77ef902e04`) — for maximum supply-chain safety (recommended for production CI)
 - `@v1`, `@v2`, ... — once tagged, major versions follow additive / breaking semantics respectively
 - `@main` — tracks the latest action surface
 

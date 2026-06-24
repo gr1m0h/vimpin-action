@@ -14,7 +14,7 @@ jobs:
     name: action self-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Prepare fixture
         run: |
@@ -43,8 +43,12 @@ jobs:
     name: lint action.yml
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      # Install the actionlint binary via its pinned bootstrap script instead
+      # of a floating third-party action (rhysd/actionlint@main), matching the
+      # gr1m0h/.github actions-pin-lint reusable workflow.
+      - name: install actionlint
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12
       - name: actionlint
-        uses: rhysd/actionlint@main
-        with:
-          fail_on_error: true
+        run: ./actionlint -color
