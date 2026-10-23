@@ -43,7 +43,7 @@ inputs:
   go-version:
     description: Go toolchain version used to install vimpin.
     required: false
-    default: "1.25"
+    default: "1.26.10"
 
 outputs:
   changed:
@@ -78,7 +78,7 @@ runs:
             # CI through proxy.golang.org. Bypass the proxy for these
             # mutable refs; immutable refs (tags, SHAs) keep the proxy
             # for fast, verifiable downloads.
-            GOPROXY=direct GOSUMDB=off go install "github.com/gr1m0h/vimpin/cmd/vimpin@${VIMPIN_VERSION}"
+            GOPROXY=direct go install "github.com/gr1m0h/vimpin/cmd/vimpin@${VIMPIN_VERSION}"
             ;;
           v[0-9]*)
             go install "github.com/gr1m0h/vimpin/cmd/vimpin@${VIMPIN_VERSION}"
